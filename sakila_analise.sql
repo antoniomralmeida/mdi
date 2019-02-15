@@ -26,3 +26,22 @@ left join payment p on (r.rental_id = p.rental_id)
 select * from payment p where not exists (select 1 from rental r where r.rental_id = p.rental_id)
 
 
+select rental_id, sum(amount) as amount from payment 
+where rental_id is not null group by rental_id
+
+
+select distinct customer_id from rental where customer_id in (
+select customer_id from payment 
+where rental_id is null group by customer_id)
+
+select customer_id, sum(amount) as amount from payment 
+where rental_id is null group by customer_id
+
+select customer_id, count(*) as B from rental
+where customer_id in (select distinct customer_id from payment where rental_id is null)
+group by customer_id
+
+select rental_id, 1 as A from rental
+where customer_id in (select distinct customer_id from payment where rental_id is null)
+
+
