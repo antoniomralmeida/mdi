@@ -1,0 +1,40 @@
+<Schema name="Loja">
+  <Dimension type="StandardDimension" visible="true" highCardinality="false" name="Customer">
+    <Hierarchy visible="true" hasAll="true" primaryKey="customer_id">
+      <Table name="dim_customer">
+      </Table>
+      <Level name="Country" visible="true" column="country" type="String" internalType="String" uniqueMembers="false" levelType="Regular" hideMemberIf="Never">
+      </Level>
+      <Level name="City" visible="true" column="city" type="String" internalType="String" uniqueMembers="false" levelType="Regular" hideMemberIf="Never">
+      </Level>
+      <Level name="Customer" visible="true" column="name" type="String" internalType="String" uniqueMembers="true" levelType="Regular" hideMemberIf="Never">
+      </Level>
+    </Hierarchy>
+  </Dimension>
+  <Dimension type="TimeDimension" visible="true" highCardinality="false" name="Data">
+    <Hierarchy visible="true" hasAll="true" primaryKey="date">
+      <Table name="dim_date">
+      </Table>
+      <Level name="Ano" visible="true" column="year" type="String" uniqueMembers="false" levelType="TimeYears" hideMemberIf="Never">
+      </Level>
+      <Level name="Mes" visible="true" column="month" type="String" uniqueMembers="false" levelType="TimeMonths" hideMemberIf="Never">
+      </Level>
+      <Level name="Dia" visible="true" column="day" type="String" uniqueMembers="false" levelType="TimeDays" hideMemberIf="Never">
+      </Level>
+    </Hierarchy>
+  </Dimension>
+  <Cube name="rental" visible="true" cache="true" enabled="true">
+    <Table name="fact_rental">
+    </Table>
+    <DimensionUsage source="Customer" name="Customer" visible="true" foreignKey="customer_id" highCardinality="false">
+    </DimensionUsage>
+    <DimensionUsage source="Data" name="Data" visible="true" foreignKey="rental_date" highCardinality="false">
+    </DimensionUsage>
+    <Measure name="amount" column="amount" aggregator="sum" visible="true">
+    </Measure>
+    <Measure name="Rental Duration" column="rental_duration" aggregator="avg" visible="true">
+    </Measure>
+    <Measure name="Return Delay" column="return_delay" aggregator="avg" visible="true">
+    </Measure>
+  </Cube>
+</Schema>
