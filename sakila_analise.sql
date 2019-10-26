@@ -43,35 +43,38 @@ DELIMITER $$
 CREATE or replace TRIGGER `sakila`.`rental_AFTER_INSERT` AFTER INSERT ON `rental` FOR EACH ROW
 BEGIN
 	insert into rental_log 
-	select    rental_hash(rental_date,film_id, store_id, r.staff_id, r.customer_id) as hash, 0
-	from rental r left join inventory i
-	on (r.inventory_id = i.inventory_id) 
+	select    rental_hash(r.rental_date,i.film_id, i.store_id, r.staff_id, r.customer_id) as hash, 0
+	from rental r 
+    left join inventory i 	on (r.inventory_id = i.inventory_id) 
 	where rental_id = new.rental.id;
 END$$
 DELIMITER ;
 
-select * from rental_log
-
-delete from rental_log
-
-
  
 /* carga inicial */
-insert into rental_log
-	select    rental_hash(rental_date,film_id, store_id, r.staff_id, r.customer_id) as hash, 0
+truncate table rental_log;
+
+insert into rental_log (hash, processed)
+	select    rental_hash(r.rental_date,i.film_id, i.store_id, r.staff_id, r.customer_id) as hash, 0 as processed
 	from rental r left join inventory i
 	on (r.inventory_id = i.inventory_id)
     
-select    rental_hash(rental_date,film_id, store_id, r.staff_id, r.customer_id) as hash, date(rental_date) as rental_date, cast(DATE_FORMAT(rental_date,  '%H') as int) as rental_hour,  film_id, store_id, r.staff_id, r.customer_id, to_days(rental_date) as days_rental,  to_days( return_date) as days_return, sum(p.amount) as amount
-from rental r left join inventory i
-on (r.inventory_id = i.inventory_id) 
+    select * from rental_log
+    
+/* TABELA FATO */    
+select    rental_hash(r.rental_date,i.film_id, i.store_id, r.staff_id, r.customer_id) as hash, 
+date(rental_date) as rental_date, CAST(DATE_FORMAT(rental_date,  '%H') as UNSIGNED) as hour_id,  film_id, store_id, r.staff_id, r.customer_id, to_days(rental_date) as days_rental,  to_days( return_date) as days_return, sum(p.amount) as amount
+from rental r 
 left join payment p on (r.rental_id = p.rental_id) 
-where rental_hash(rental_date,film_id, store_id, r.staff_id, r.customer_id) in (select hash from rental_log where processed = 1 )
-group by  rental_hash(rental_date,film_id, store_id, r.staff_id, r.customer_id), date(rental_date) , DATE_FORMAT(rental_date,  '%H'),  film_id, store_id, r.staff_id, r.customer_id, date(return_date)
+left join inventory i on (r.inventory_id = i.inventory_id) 
+where rental_hash(r.rental_date,i.film_id, i.store_id, r.staff_id, r.customer_id) in (select distinct hash from rental_log where processed = 1 )
+group by  rental_hash(r.rental_date,i.film_id, i.store_id, r.staff_id, r.customer_id), date(rental_date) , DATE_FORMAT(rental_date,  '%H'),  film_id, store_id, r.staff_id, r.customer_id, date(return_date)
 order by customer_id
 
 
-select * from dw.fact_rental
+
+
+select sum(amount), sum(extra_amount_rateio) from dw.fact_rental
 
 
 
@@ -134,7 +137,8 @@ group by rental_id, customer_id
  select  distinct date(rental_date) from rental 
  
  /* hour */
- select distinct DATE_FORMAT(rental_date,  '%H') as hour from rental
+ select distinct CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED) as hour_id,
+ DATE_FORMAT(rental_date,  '%H') as hour from rental
  
  
  
