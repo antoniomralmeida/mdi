@@ -5,7 +5,33 @@ use sakila;
 select count(*) from rental;
 
 select count(*) from (
-select distinct date(rental_date) from rental) base
+select rental_hash(r.customer_id, r.staff_id, to_days(rental_date), 
+CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED), i.film_id, i.store_id) as hash,
+r.customer_id, r.staff_id, to_days(rental_date) as date_id, 
+CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED) as hour_id, i.film_id, i.store_id,
+sum(amount) as amount, max(to_days(rental_date)) as rental_days, max(to_days(return_date)) as return_days
+from rental r left join inventory i on (r.inventory_id = i.inventory_id)
+left join payment p on (r.rental_id = p.rental_id)
+group by r.customer_id, r.staff_id, to_days(rental_date) , 
+CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED) , i.film_id, i.store_id
+) x
+
+/* análise de consistência */
+select sum(amount) from payment
+
+select sum(amount) from (
+select rental_hash(r.customer_id, r.staff_id, to_days(rental_date), 
+CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED), i.film_id, i.store_id) as hash,
+r.customer_id, r.staff_id, to_days(rental_date) as date_id, 
+CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED) as hour_id, i.film_id, i.store_id,
+sum(amount) as amount, max(to_days(rental_date)) as rental_days, max(to_days(return_date)) as return_days
+from rental r left join inventory i on (r.inventory_id = i.inventory_id)
+left join payment p on (r.rental_id = p.rental_id)
+group by r.customer_id, r.staff_id, to_days(rental_date) , 
+CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED) , i.film_id, i.store_id
+) x
+
+
 
 
 /* dim Customer */
@@ -48,6 +74,7 @@ group by film_id) a
 on (f.film_id  = a.film_id)
 
 /* fact rental */
+select count(*) from (
 select rental_hash(r.customer_id, r.staff_id, to_days(rental_date), 
 CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED), i.film_id, i.store_id) as hash,
 r.customer_id, r.staff_id, to_days(rental_date) as date_id, 
@@ -57,6 +84,18 @@ from rental r left join inventory i on (r.inventory_id = i.inventory_id)
 left join payment p on (r.rental_id = p.rental_id)
 group by r.customer_id, r.staff_id, to_days(rental_date) , 
 CAST(DATE_FORMAT(rental_date,  '%H') AS UNSIGNED) , i.film_id, i.store_id
+) x
+
+/* base do rateio */ 
+select customer_id, sum(amount)
+from payment
+where rental_id is null
+group by customer_id
+
+/* critério de rateio */
+select customer_id, count(*) as criterio
+from rental
+group by customer_id
 
 
 
